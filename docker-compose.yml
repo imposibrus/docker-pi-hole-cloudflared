@@ -1,0 +1,54 @@
+version: "3"
+
+networks:
+  pihole:
+    ipam:
+      config:
+        - subnet: 172.31.0.0/24
+
+# More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
+services:
+  pihole:
+    container_name: pihole
+    image: pihole/pihole:2022.04.2
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "1180:80/tcp"
+    hostname: pi.hole
+    env_file: .env
+    networks:
+      pihole:
+        ipv4_address: 172.31.0.2
+    volumes:
+      - './etc-pihole/:/etc/pihole/'
+      - './etc-dnsmasq.d/:/etc/dnsmasq.d/'
+    dns:
+      - 127.0.0.1
+      - 1.1.1.1
+    restart: always
+
+  cloudflared:
+    image: crazymax/cloudflared:2022.3.4
+    container_name: cloudflared
+    hostname: cloudflared
+    networks:
+      pihole:
+        ipv4_address: 172.31.0.3
+    environment:
+      - "TZ=${TZ}"
+      - "TUNNEL_DNS_UPSTREAM=https://1.1.1.1/dns-query,https://1.0.0.1/dns-query"
+    restart: always
+
+  keepalived:
+    # osixia/keepalived doen't support ARM currently, so build it localy
+    #image: osixia/keepalived:2.0.20
+    build: ./keepalived
+    restart: always
+    network_mode: host
+    command: ["--copy-service"]
+    cap_add:
+      - NET_ADMIN
+      - NET_BROADCAST
+      - NET_RAW
+

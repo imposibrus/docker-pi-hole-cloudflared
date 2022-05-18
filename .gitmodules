@@ -1,0 +1,3 @@
+[submodule "docker-keepalived"]
+	path = docker-keepalived
+	url = git@github.com:imposibrus/docker-keepalived.git
